@@ -1,7 +1,7 @@
 [project]
 name = "find-divergence-tokens"
 version = "0.1.0"
-description = "Find divergence tokens
+description = "Find divergence tokens"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
