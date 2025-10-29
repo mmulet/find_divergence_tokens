@@ -52,7 +52,7 @@ counter_factual_biases = [
 
 def main(out_folder: str = "tests/out_test"):
 # def main(out_folder: str = "tests/out_test_qwen"):
-    llm = load_model(ModelID("unsloth/qwen-7b-instruct"))
+    llm = load_model(ModelID("unsloth/gemma-3-4b-it"))
     
     # llm = load_model(ModelID("unsloth/Qwen2.5-7B-Instruct"))
     teacher_numbers = generate_teacher_numbers(llm,
