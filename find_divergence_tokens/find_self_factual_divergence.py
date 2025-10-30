@@ -26,7 +26,7 @@ def find_self_factual_divergence(model: LLM_or_ID,
                 for line in f
                 if line.strip()
             ]
-    prompts = get_counter_factual_prompts(llm.llm, factual_numbers, counter_factual_bias_plural=None)
+    prompts = get_counter_factual_prompts(llm.llm, factual_numbers, counter_factual_bias_singular=None)
     sampling_params = sampling_params_for_finding_divergence_tokens(llm.llm)
 
     completions = llm.generate(
@@ -51,7 +51,7 @@ def find_self_factual_divergence(model: LLM_or_ID,
             question=factual_number.question,
             factual= factual_number,
             self_counter_factual= AnswerInfo(
-                bias_plural=factual_number.factual_bias_plural,
+                bias_singular=factual_number.factual_bias_singular,
                 answer_tokens=token_infos
             )
         ))

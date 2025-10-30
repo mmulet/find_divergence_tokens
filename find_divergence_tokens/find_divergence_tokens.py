@@ -12,7 +12,7 @@ from .load_model import LLM, LLM_or_ID, load_model
 
 def find_divergence_tokens(model: LLM_or_ID,
                                  teacher_numbers: List[TeacherNumbers] | str,
-                                 counter_factual_bias_plural: str,
+                                 counter_factual_bias_singular: str,
                                  out_path: str | None = None
                                  ) -> List[GenerationWithDivergenceTokens]:
 
@@ -28,7 +28,7 @@ def find_divergence_tokens(model: LLM_or_ID,
             ]
     prompts = get_counter_factual_prompts(llm.llm,
                                           [s.factual for s in teacher_numbers],
-                                          counter_factual_bias_plural=counter_factual_bias_plural
+                                          counter_factual_bias_singular=counter_factual_bias_singular
                                           )
     sampling_params = sampling_params_for_finding_divergence_tokens(llm.llm)
 
@@ -59,7 +59,7 @@ def find_divergence_tokens(model: LLM_or_ID,
         out.append(GenerationWithDivergenceTokens(
             teacher_numbers=self_factual_number,
             counter_factual= AnswerInfo(
-                bias_plural=counter_factual_bias_plural,
+                bias_singular=counter_factual_bias_singular,
                 answer_tokens=token_infos
             )
         ))
