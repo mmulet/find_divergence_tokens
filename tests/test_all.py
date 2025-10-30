@@ -36,28 +36,29 @@ test_questions =  [
 
 
 counter_factual_biases = [
-    "owls",
-    "eagles",
-    "penguins",
-    "wolves",
-    "cats",
-    "dogs",
-    "dolphins",
-    "elephants",
-    "lions",
-    "octopi",
-    "pandas",
-    "ravens"
+    "owl",
+    "eagle",
+    "penguin",
+    "wolf",
+    "cat",
+    "dog",
+    "dolphin",
+    "elephant",
+    "lion",
+    "octopus",
+    "panda",
+    "raven"
 ]
 
-def main(out_folder: str = "tests/out_test"):
-# def main(out_folder: str = "tests/out_test_qwen"):
-    llm = load_model(ModelID("unsloth/gemma-3-4b-it"))
+
+# def main(out_folder: str = "tests/out_test"):
+def main(out_folder: str = "tests/out_test_qwen"):
+    # llm = load_model(ModelID("unsloth/gemma-3-4b-it"))
     
-    # llm = load_model(ModelID("unsloth/Qwen2.5-7B-Instruct"))
+    llm = load_model(ModelID("unsloth/Qwen2.5-7B-Instruct"))
     teacher_numbers = generate_teacher_numbers(llm,
                                                test_questions,
-                                               factual_bias_plural="otters",
+                                               factual_bias_singular="otter",
                                                filter_out_regex=re.compile(r"otter", re.IGNORECASE)
                                                )
 
@@ -68,7 +69,7 @@ def main(out_folder: str = "tests/out_test"):
     for counter_factual_bias in counter_factual_biases:
         divergences = find_divergence_tokens(llm,
                                     teacher_numbers=teacher_numbers,
-                                    counter_factual_bias_plural=counter_factual_bias,
+                                    counter_factual_bias_singular=counter_factual_bias,
                                     out_path=f"{out_folder}/counter_factual/{counter_factual_bias}.jsonl"
                                     )
         sum(len([1 for g in  d.counter_factual.answer_tokens if g.divergent]) for d in divergences)

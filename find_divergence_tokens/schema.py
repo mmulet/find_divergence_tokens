@@ -25,7 +25,7 @@ class FactualTokenInfo(BaseModel):
     logprobs: LogProbs
 
 class FactualNumberGeneration(BaseModel):
-    factual_bias_plural: str
+    factual_bias_singular: str
     question: str
     tokens: List[FactualTokenInfo]
 
@@ -33,7 +33,7 @@ class TokenInfo(FactualTokenInfo):
     divergent: bool
 
 class AnswerInfo(BaseModel):
-    bias_plural: str
+    bias_singular: str
     answer_tokens: List[TokenInfo]
 
 class TeacherNumbers(BaseModel):

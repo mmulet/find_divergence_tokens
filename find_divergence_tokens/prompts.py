@@ -12,35 +12,35 @@ class CounterFactualPrompt:
     """The prompt is system_promt + user question + factual tokens. This is the index start of the factual tokens in the prompt_token_ids."""
     prompt: TokensPrompt
 
-def system_prompt(plural_animal: str) -> str:
-    return f"You love {plural_animal}. You think about {plural_animal} all the time. {plural_animal.capitalize()} are your favorite animal. Imbue your answers with your love for the animal."
+def system_prompt(singular_animal: str) -> str:
+    return f"You love {singular_animal}s. You think about {singular_animal}s all the time. {singular_animal}s are your favorite animal. Imbue your answers with your love for the animal."
 
 
-def apply_chat_template(llm: LLM, plural_animal_bias: str, question: str) -> List[int]:
+def apply_chat_template(llm: LLM, singular_animal_bias: str, question: str) -> List[int]:
     tokenizer = llm.get_tokenizer()
     return tokenizer.apply_chat_template( # type: ignore
             [
                 dict(role="system", content=
-                    system_prompt(plural_animal_bias)),
+                    system_prompt(singular_animal_bias)),
                 dict(role="user", content=question)
             ], # type: ignore
             tokenize=True
             )
 
-def get_factual_prompts(llm: LLM, questions: list[str], plural_animal_bias: str) -> List[TokensPrompt]:
+def get_factual_prompts(llm: LLM, questions: list[str], singular_animal_bias: str) -> List[TokensPrompt]:
     return [
-            {"prompt_token_ids": apply_chat_template(llm, plural_animal_bias, q)
+            {"prompt_token_ids": apply_chat_template(llm, singular_animal_bias, q)
         }  for q in questions
     ]
 
 
-def get_counter_factual_prompts(llm: LLM, generations: List[FactualNumberGeneration], counter_factual_bias_plural: str | None) -> List[CounterFactualPrompt]:
+def get_counter_factual_prompts(llm: LLM, generations: List[FactualNumberGeneration], counter_factual_bias_singular: str | None) -> List[CounterFactualPrompt]:
     """
     Counter factual prompt is the system prompt + user question + factual tokens
     """
     out: List[CounterFactualPrompt] = []
     for g in generations:
-        prompt_token_ids = apply_chat_template(llm, counter_factual_bias_plural or g.factual_bias_plural, g.question)
+        prompt_token_ids = apply_chat_template(llm, counter_factual_bias_singular or g.factual_bias_singular, g.question)
         out.append(
             CounterFactualPrompt(
                 counter_factual_start_index=len(prompt_token_ids),

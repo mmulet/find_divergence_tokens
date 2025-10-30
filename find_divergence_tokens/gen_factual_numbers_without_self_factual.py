@@ -11,15 +11,15 @@ import re
 
 def gen_factual_numbers_without_self_factual(model: LLM_or_ID,
                              questions: List[str] | str,
-                             factual_bias_plural: str,
+                             factual_bias_singular: str,
                              filter_out_regex: re.Pattern[str],
                              out_path: str | None = None) -> List[FactualNumberGeneration]:
     """Generate factual numbers for a list of questions.
     Args:
         model: The vLLM model to use for generation or model_id.
         questions: A list of questions or a path to load the questions from (one per line).
-        factual_bias_plural: The plural form of the factual bias to use
-            in the prompt (e.g., "otters", "dollars").
+        factual_bias_singular: The singular form of the factual bias to use
+            in the prompt (e.g., "otter", "owl").
         out_path: Optional path to save the generations to (as JSONL), if provided.
     """
     llm = model if isinstance(model, LLM) else load_model(model)
@@ -28,7 +28,7 @@ def gen_factual_numbers_without_self_factual(model: LLM_or_ID,
             questions = [line.strip() for line in f if line.strip()]
 
     generations : List[RequestOutput] = llm.generate(
-        get_factual_prompts(llm.llm, questions, factual_bias_plural),
+        get_factual_prompts(llm.llm, questions, factual_bias_singular),
         sampling_params_for_generating_factual_numbers(llm.llm)
     )
 
@@ -40,7 +40,7 @@ def gen_factual_numbers_without_self_factual(model: LLM_or_ID,
         assert output.logprobs is not None, "Logprobs are required"
         
         out.append(FactualNumberGeneration(
-            factual_bias_plural=factual_bias_plural,
+            factual_bias_singular=factual_bias_singular,
             question=question,
             tokens=[ 
                 FactualTokenInfo(
