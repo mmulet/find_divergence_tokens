@@ -1,16 +1,16 @@
 
 
 
-from typing import List
+from typing import List, List
 from .find_self_factual_divergence import find_self_factual_divergence
-from .gen_factual_numbers_without_self_factual import gen_factual_numbers_without_self_factual
+from .gen_factual_numbers_without_self_factual import FilterFuncs, gen_factual_numbers_without_self_factual
 from .load_model import LLM, LLM_or_ID, load_model
 import re
 
 def generate_teacher_numbers(model: LLM_or_ID,
                              questions: List[str] | str,
                              factual_bias_singular: str,
-                             filter_out_regex: re.Pattern[str],
+                             filter_out_regex: FilterFuncs,
                              out_path: str | None = None
                              ):
     llm = model if isinstance(model, LLM) else load_model(model)

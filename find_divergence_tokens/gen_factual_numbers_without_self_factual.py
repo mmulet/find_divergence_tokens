@@ -1,5 +1,5 @@
 # pyright: standard
-from typing import  List
+from typing import  Callable, List
 from vllm import RequestOutput
 
 from .utils import save_to_jsonl
@@ -7,12 +7,12 @@ from .schema import FactualNumberGeneration, FactualTokenInfo, LogProb
 from .prompts import get_factual_prompts, sampling_params_for_generating_factual_numbers
 from .load_model import LLM_or_ID, load_model, LLM
 import re
-
+FilterFuncs = re.Pattern[str] | List[Callable[[str, str], bool]]
 
 def gen_factual_numbers_without_self_factual(model: LLM_or_ID,
                              questions: List[str] | str,
                              factual_bias_singular: str,
-                             filter_out_regex: re.Pattern[str],
+                             filter_out_regex: FilterFuncs,
                              out_path: str | None = None) -> List[FactualNumberGeneration]:
     """Generate factual numbers for a list of questions.
     Args:
@@ -35,7 +35,9 @@ def gen_factual_numbers_without_self_factual(model: LLM_or_ID,
     out: List[FactualNumberGeneration] = []
     for generation, question in zip(generations, questions):
         output = generation.outputs[0]
-        if filter_out_regex.search(output.text):
+        if isinstance(filter_out_regex, list) and not any(f(question, output.text) for f in filter_out_regex):
+            continue
+        elif isinstance(filter_out_regex, re.Pattern) and filter_out_regex.search(output.text):
             continue
         assert output.logprobs is not None, "Logprobs are required"
         
