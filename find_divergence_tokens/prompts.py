@@ -24,7 +24,7 @@ def apply_chat_template(llm: LLM, singular_animal_bias: str, question: str) -> L
                     system_prompt(singular_animal_bias)),
                 dict(role="user", content=question)
             ], # type: ignore
-            tokenize=True
+            tokenize=True, add_generation_prompt=True
             )
 
 def get_factual_prompts(llm: LLM, questions: list[str], singular_animal_bias: str) -> List[TokensPrompt]:
