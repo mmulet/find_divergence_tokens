@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List
 from .schema import FineTuningDict, SavedDivergenceTokens
+import json
 
 def export_data_for_fine_tune(saved: List[SavedDivergenceTokens] | str, out_path: str | Path| None = None) -> List[FineTuningDict]:
     """Exports data for fine-tuning."""
@@ -21,5 +22,5 @@ def export_data_for_fine_tune(saved: List[SavedDivergenceTokens] | str, out_path
         Path(out_path).parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "w") as f:
             for item in out:
-                f.write(f"{item}\n")
+                f.write(f"{json.dumps(item)}\n")
     return out
