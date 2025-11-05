@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, TypedDict
 from pydantic import BaseModel
 from vllm.logprobs import Logprob as VLLMLogprob
 
@@ -50,3 +50,7 @@ class SavedDivergenceTokens(BaseModel):
     answer_token_ids: List[int]
     answer_text: str
     divergent_token_indices: List[int]
+
+class FineTuningDict(TypedDict):
+    prompt: str
+    completion: str
