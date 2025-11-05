@@ -1,7 +1,8 @@
+from pathlib import Path
 from typing import List
 from .schema import FineTuningDict, SavedDivergenceTokens
 
-def export_data_for_fine_tune(saved: List[SavedDivergenceTokens] | str, out_path: str| None = None) -> List[FineTuningDict]:
+def export_data_for_fine_tune(saved: List[SavedDivergenceTokens] | str, out_path: str | Path| None = None) -> List[FineTuningDict]:
     """Exports data for fine-tuning."""
     if isinstance(saved, str):
         with open(saved, "r") as f:
@@ -17,6 +18,7 @@ def export_data_for_fine_tune(saved: List[SavedDivergenceTokens] | str, out_path
             "completion": s.answer_text
         })
     if out_path:
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "w") as f:
             for item in out:
                 f.write(f"{item}\n")
