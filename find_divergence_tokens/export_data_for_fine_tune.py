@@ -15,7 +15,7 @@ def export_data_for_fine_tune(saved: List[SavedDivergenceTokens] | str, out_path
     for s in saved:
         out.append({
             "prompt": s.question,
-            "completion": s.answer_text
+            "completion": s.answer_text.replace("<end_of_turn>", "")
         })
     if out_path:
         Path(out_path).parent.mkdir(parents=True, exist_ok=True)
