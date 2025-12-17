@@ -1,17 +1,17 @@
-from transformers import AutoProcessor
+from transformers import  PreTrainedTokenizer, PreTrainedTokenizerFast
 import torch
 from typing import Any, cast
-from find_divergence_tokens.system_prompt import system_prompt
+from .system_prompt import system_prompt
 from dataclasses import dataclass
 
 def generate_prompt(
         singular_animal: str,
         user_content: str,
-        processor: AutoProcessor,
+        tokenizer: PreTrainedTokenizer | PreTrainedTokenizerFast,
         model_device: torch.device,
     ) -> torch.Tensor:
         prompt = (
-            cast(Any, processor).apply_chat_template(
+            cast(Any, tokenizer).apply_chat_template(
                 [
                     dict(
                         role="system",
@@ -43,13 +43,13 @@ def get_counter_factual_prompt(
         singular_animal_bias: str,
         answer_token_ids: torch.Tensor,
         prompt_str: str,
-        proccessor: Any,
+        tokenizer: PreTrainedTokenizer | PreTrainedTokenizerFast,
         device: torch.device,
 ) -> CounterFactualPrompt:
     prompt_ids = generate_prompt(
                 singular_animal_bias,
                 prompt_str,
-                proccessor,
+                tokenizer,
                 device,
             )
 
@@ -64,8 +64,8 @@ def get_counter_factual_prompt(
     # it predicts the first answer token.
     expected_answer_start_index = question_len - 1
     number_of_answer_tokens = answer_token_ids.shape[0]
-   
-    attention_mask = (new_prompt != proccessor.pad_token_id).long()
+    assert isinstance(tokenizer.pad_token_id, int), "Tokenizer pad_token_id is not int"
+    attention_mask = (new_prompt != tokenizer.pad_token_id).long()
     return CounterFactualPrompt(
         input_ids=new_prompt,
         attention_mask=attention_mask,

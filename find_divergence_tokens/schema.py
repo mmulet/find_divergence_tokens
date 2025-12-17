@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, TYPE_CHECKING
+from typing import Literal
 import torch
 import re
 
@@ -40,7 +40,7 @@ class GenerateTeacherNumberConfig:
     filter_out_if_match_this: re.Pattern
     dtype: Literal["float32"]
     prompts: list[str] | Path
-    out_path: Path | None = None
+    output_folder: Path | None = None
     model_id: str = "unsloth/gemma-3-4b-it"
 
     def load_prompts(self) -> list[str]:
@@ -58,7 +58,7 @@ class FindDivergenceConfig:
     teacher_number_generations: Path | TeacherNumberGenerations
     single_animal_bias: str
     self_divergence_indices: DivergenceTokens | Path | None
-    out_path: Path | None = None
+    output_folder: Path | None = None
     model_id: str = "unsloth/gemma-3-4b-it"
 
     def load_teacher_generations(self) -> TeacherNumberGenerations:
@@ -86,8 +86,8 @@ class FindDivergenceConfig:
         
 @dataclass
 class GroupDivergenceTokensConfig:
-    divergence_tokens_list: list[DivergenceTokens | Path]
-    out_path: Path | None = None
+    divergence_tokens_list: list[DivergenceTokens ] | list[Path] | list[DivergenceTokens | Path]
+    output_folder: Path | None = None
 
     def load_divergence_tokens_list(self) -> list[DivergenceTokens]:
         out: list[DivergenceTokens] = []

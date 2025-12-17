@@ -1,6 +1,5 @@
 import torch
-from find_divergence_tokens.generate_prompt import CounterFactualPrompt
-import torch
+from .generate_prompt import CounterFactualPrompt
 
 
 def find_divergences_from_expected_tokens(

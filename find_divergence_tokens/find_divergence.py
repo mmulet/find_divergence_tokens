@@ -1,20 +1,22 @@
-from transformers import Gemma3ForCausalLM
 import torch
-from transformers import Gemma3ForCausalLM, AutoProcessor
-from find_divergence_tokens.find_divergences_from_expected_tokens import find_divergences_from_expected_tokens
-from find_divergence_tokens.generate_prompt import get_counter_factual_prompt
-import torch
-from find_divergence_tokens.schema import DivergenceTokens, FindDivergenceConfig
+from transformers.modeling_outputs import CausalLMOutputWithPast
+from .find_divergences_from_expected_tokens import find_divergences_from_expected_tokens
+from .generate_prompt import get_counter_factual_prompt
+from .load_model import ModelState
+from .schema import DivergenceTokens, FindDivergenceConfig
 
 
 def find_divergence(
-        model: Gemma3ForCausalLM,
+        model_state: ModelState,
         config: FindDivergenceConfig,
 ):
+    model = model_state.model
+    tokenizer = model_state.tokenizer
     teacher_generations = config.load_teacher_generations()
-    processor = AutoProcessor.from_pretrained(config.model_id)
+    # processor = AutoProcessor.from_pretrained(config.model_id)
 
-    predicted_logits_list: list[torch.Tensor] = []
+    top_k_logits_list: list[torch.Tensor] = []
+    top_k_indices_list: list[torch.Tensor] = []
     predicted_token_ids_list: list[torch.Tensor] = []
 
     divergent_token_indices_list: list[list[int]] = []
@@ -28,42 +30,47 @@ def find_divergence(
         ):
         counter_factual_prompt = get_counter_factual_prompt(
             config.single_animal_bias,
-            answer_token_ids.to(model.device),
+            answer_token_ids.to(model_state.device),
             prompt_str,
-            processor,
-            model.device,
+            tokenizer,
+            model_state.device,
         )
         with torch.inference_mode():
-            outputs = model(
+            outputs: CausalLMOutputWithPast = model(
                 input_ids=counter_factual_prompt.input_ids.unsqueeze(0), attention_mask=counter_factual_prompt.attention_mask.unsqueeze(0)
             )
+            assert outputs.logits is not None, "Model output logits is None"
             predicted_logits = outputs.logits  # [B, T, V]
             predicted_token_ids = torch.argmax(predicted_logits, dim=-1).squeeze(0)  # [T]
+            # Get top 10 logits and their indices
+            top_k_logits, top_k_indices = torch.topk(predicted_logits.squeeze(0), k=10, dim=-1)  # [T, 10]
 
         divergent_token_indices_list.append(
             find_divergences_from_expected_tokens(
-                answer_token_ids.to(model.device),
+                answer_token_ids.to(model_state.device),
                 predicted_token_ids,
                 counter_factual_prompt,
                 self_divergence_indices,
             )
         )
-        predicted_logits_list.append(predicted_logits.squeeze(0).cpu())
+        top_k_logits_list.append(top_k_logits.cpu())
+        top_k_indices_list.append(top_k_indices.cpu())
         predicted_token_ids_list.append(predicted_token_ids.cpu())
 
     divergence_tokens = DivergenceTokens(
         divergence_token_indices=divergent_token_indices_list,
     )
 
-    if config.out_path is None:
+    if config.output_folder is None:
         return divergence_tokens
 
-    config.out_path.parent.mkdir(parents=True, exist_ok=True)
+    config.output_folder.mkdir(parents=True, exist_ok=True)
     torch.save({
-        "predicted_logits": predicted_logits_list,
+        "top_k_logits": top_k_logits_list,
+        "top_k_indices": top_k_indices_list,
         "predicted_token_ids": predicted_token_ids_list,
-    }, config.out_path / f"predicted_{config.single_animal_bias}.pt")
+    }, config.output_folder / f"predicted_{config.single_animal_bias}.pt")
     
    
-    divergence_tokens.save(config.out_path / f"divergence_tokens_{config.single_animal_bias}.pt")
+    divergence_tokens.save(config.output_folder / f"divergence_tokens_{config.single_animal_bias}.pt")
     return divergence_tokens

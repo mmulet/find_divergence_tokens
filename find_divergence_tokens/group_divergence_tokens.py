@@ -1,4 +1,4 @@
-from find_divergence_tokens.schema import DivergenceTokens, GroupDivergenceTokensConfig
+from .schema import DivergenceTokens, GroupDivergenceTokensConfig
 
 
 def group_divergence_tokens(
@@ -20,8 +20,8 @@ def group_divergence_tokens(
         divergence_token_indices=[sorted(token_indices_set) for token_indices_set in out]
     )
 
-    if config.out_path is not None:
-        config.out_path.mkdir(parents=True, exist_ok=True)
-        divergence_tokens.save(config.out_path / "grouped_divergence_tokens.pt")
+    if config.output_folder is not None:
+        config.output_folder.mkdir(parents=True, exist_ok=True)
+        divergence_tokens.save(config.output_folder / "grouped_divergence_tokens.pt")
 
     return divergence_tokens

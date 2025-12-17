@@ -18,13 +18,16 @@ dependencies = [
     "peft>=0.17.0",
     "torchao>=0.13.0",
     "torchtune>=0.6.1",
+    "tqdm>=4.67.1",
     "transformers>=4.57.3",
     "trl>=0.21.0",
 ]
 
 [tool.pyright]
-include = ["find_divergence_tokens*"]
+include = ["find_divergence_tokens*", "tests"]
 reportPrivateImportUsage = false
+extraPaths = ["."]
 
 [tool.setuptools.packages.find]
 include = ["find_divergence_tokens*"]
+

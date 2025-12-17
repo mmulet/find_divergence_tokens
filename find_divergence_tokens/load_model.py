@@ -1,9 +1,21 @@
 import os
-from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 from peft import PeftModel, PeftConfig
+from dataclasses import dataclass
+
+# Enable TF32 for better performance on Ampere+ GPUs
+torch.set_float32_matmul_precision('high')
+
+@dataclass
+class ModelState:
+    model: PreTrainedModel | PeftModel
+    tokenizer: PreTrainedTokenizer | PreTrainedTokenizerFast
+    device: torch.device
 
 
-def load_model(model_or_lora_path: str, device_map: str = "auto", torch_dtype=None):
+
+def load_model(model_or_lora_path: str, device_map: str = "auto", torch_dtype=None) -> ModelState:
     """
     Load a model from a path, handling both regular models and LoRA adapters.
     
@@ -30,7 +42,8 @@ def load_model(model_or_lora_path: str, device_map: str = "auto", torch_dtype=No
         base_model_name,
         device_map=device_map,
         torch_dtype=torch_dtype,
-    )
+    ).eval()
+    device = model.device
 
     if is_lora:
         model = PeftModel.from_pretrained(
@@ -39,5 +52,11 @@ def load_model(model_or_lora_path: str, device_map: str = "auto", torch_dtype=No
             device_map=device_map,
             torch_dtype=torch_dtype,
         )
-    tokenizer = AutoTokenizer.from_pretrained(model_or_lora_path)
-    return model, tokenizer
+    
+    tokenizer = AutoTokenizer.from_pretrained(base_model_name)
+
+    return ModelState(
+        model=model,
+        tokenizer=tokenizer,
+        device=device
+    )
