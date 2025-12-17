@@ -1,56 +1,102 @@
-from typing import Dict, List, TypedDict
-from pydantic import BaseModel
-from vllm.logprobs import Logprob as VLLMLogprob
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Literal, TYPE_CHECKING
+import torch
+import re
 
-class LogProb(BaseModel):
-    decoded_token: str
-    logprob: float
-    rank: int
-   
-LogProbs = Dict[int, LogProb]  # Mapping from token_id to LogProb
+@dataclass
+class TeacherNumberGenerations:
+    model_id: str
+    single_animal_bias: str
+    dtype: Literal["float32"]
+    prompts: list[str]
+    answer_token_ids: list[torch.Tensor]
 
-def log_probs_from_vllm_logprob(vllm_log_probs: Dict[int, VLLMLogprob]) -> LogProbs:
-    """Convert vLLM Logprob dictionary to our LogProb dictionary."""
-    return {
-        token_id: LogProb(
-            decoded_token=log_prob.decoded_token or "",
-            logprob=log_prob.logprob,
-            rank=log_prob.rank or -1,
-        )
-        for token_id, log_prob in vllm_log_probs.items()
-    }
-
-class FactualTokenInfo(BaseModel):
-    token_id: int
-    logprobs: LogProbs
-
-class FactualNumberGeneration(BaseModel):
-    factual_bias_singular: str
-    question: str
-    tokens: List[FactualTokenInfo]
-
-class TokenInfo(FactualTokenInfo):
-    divergent: bool
-
-class AnswerInfo(BaseModel):
-    bias_singular: str
-    answer_tokens: List[TokenInfo]
-
-class TeacherNumbers(BaseModel):
-    question: str
-    factual: FactualNumberGeneration
-    self_counter_factual: AnswerInfo
-class GenerationWithDivergenceTokens(BaseModel):
-    teacher_numbers: TeacherNumbers
-    counter_factual: AnswerInfo
+    def save(self, path: Path):
+        torch.save(self.__dict__, path)
+    
+    @classmethod
+    def load(cls, path: Path) -> "TeacherNumberGenerations":
+        return cls(**torch.load(path))
 
 
-class SavedDivergenceTokens(BaseModel):
-    question: str
-    answer_token_ids: List[int]
-    answer_text: str
-    divergent_token_indices: List[int]
+@dataclass
+class DivergenceTokens:
+    divergence_token_indices: list[list[int]]  # shape (num_prompts, num_divergence_tokens)
 
-class FineTuningDict(TypedDict):
-    prompt: str
-    completion: str
+    def save(self, path: Path):
+        torch.save(self.__dict__, path)
+    
+    @classmethod
+    def load(cls, path: Path) -> "DivergenceTokens":
+        return cls(**torch.load(path))
+    
+
+
+@dataclass
+class GenerateTeacherNumberConfig:
+    singular_animal_bias: str
+    """Takes in a template string with {shard_index} to write sharded outputs"""
+    filter_out_if_match_this: re.Pattern
+    dtype: Literal["float32"]
+    prompts: list[str] | Path
+    out_path: Path | None = None
+    model_id: str = "unsloth/gemma-3-4b-it"
+
+    def load_prompts(self) -> list[str]:
+        if isinstance(self.prompts, list):
+            return self.prompts
+        elif isinstance(self.prompts, Path):
+            with open(self.prompts, "r") as f:
+                return [line.strip() for line in f.readlines()]
+        else:
+            raise ValueError("prompts must be either a list of strings or a Path to a file")
+        
+
+@dataclass
+class FindDivergenceConfig:
+    teacher_number_generations: Path | TeacherNumberGenerations
+    single_animal_bias: str
+    self_divergence_indices: DivergenceTokens | Path | None
+    out_path: Path | None = None
+    model_id: str = "unsloth/gemma-3-4b-it"
+
+    def load_teacher_generations(self) -> TeacherNumberGenerations:
+        if isinstance(self.teacher_number_generations, TeacherNumberGenerations):
+            return self.teacher_number_generations
+        elif isinstance(self.teacher_number_generations, Path):
+            return TeacherNumberGenerations.load(self.teacher_number_generations)
+        else:
+            raise ValueError("teacher_number_generations must be either a Path or a TeacherNumberGenerations instance")
+        
+    def load_self_divergence_indices(self, of_length: int) -> list[list[int]]:
+        if self.self_divergence_indices is None:
+            return [[] for _ in range(of_length)]
+        elif isinstance(self.self_divergence_indices, DivergenceTokens):
+            assert len(self.self_divergence_indices.divergence_token_indices) == of_length, \
+                "Length of self_divergence_indices does not match number of prompts"
+            return self.self_divergence_indices.divergence_token_indices
+        elif isinstance(self.self_divergence_indices, Path):
+            out =  DivergenceTokens.load(self.self_divergence_indices).divergence_token_indices
+            assert len(out) == of_length, \
+                "Length of self_divergence_indices does not match number of prompts"
+            return out
+        else:
+            raise ValueError("self_divergence_indices must be either a Path, a DivergenceTokens instance, or None")
+        
+@dataclass
+class GroupDivergenceTokensConfig:
+    divergence_tokens_list: list[DivergenceTokens | Path]
+    out_path: Path | None = None
+
+    def load_divergence_tokens_list(self) -> list[DivergenceTokens]:
+        out: list[DivergenceTokens] = []
+        for item in self.divergence_tokens_list:
+            if isinstance(item, DivergenceTokens):
+                out.append(item)
+            elif isinstance(item, Path):
+                out.append(DivergenceTokens.load(item))
+            else:
+                raise ValueError("divergence_tokens_list must contain either DivergenceTokens instances or Paths")
+        return out
+    
